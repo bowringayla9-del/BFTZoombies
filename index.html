@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 8 Zombie Lap Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg: #12151b;
+    --surface: #1b2028;
+    --surface-2: #242b35;
+    --track: #b8471f;
+    --track-dim: #7a3016;
+    --chalk: #f4f2ea;
+    --yellow: #ffc93c;
+    --text: #eef0f2;
+    --text-dim: #8791a1;
+    --danger: #e5484d;
+    --border: #2e3542;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: radial-gradient(1200px 600px at 50% -10%, #1a212c 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 28px 16px 80px;
+  }
+  .wrap{ max-width: 640px; margin: 0 auto; }
+
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--track);
+    font-weight: 600;
+  }
+  h1{
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 34px;
+    letter-spacing: 0.01em;
+    margin: 2px 0 24px;
+    text-transform: uppercase;
+    line-height: 0.95;
+  }
+
+  .hero{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .track-svg{ width: 100%; height: auto; display:block; }
+  .hero-stats{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: -8px;
+  }
+  .total-num{
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 44px;
+    color: var(--chalk);
+    line-height: 1;
+  }
+  .total-label{
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .goal-edit{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+  .goal-edit input{
+    width: 70px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--yellow);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 3px 6px;
+    text-align: right;
+  }
+
+  .panel{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px;
+    margin-top: 18px;
+  }
+  .panel h2{
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0 0 14px;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .lane-dot{
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--track);
+    display:inline-block;
+  }
+
+  label.field-label{
+    display:block;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .name-row{ display:flex; gap:8px; margin-bottom: 14px; }
+  select, input[type=text], input[type=number]{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    flex: 1;
+    min-width: 0;
+  }
+  select:focus, input:focus{ outline: 2px solid var(--track); outline-offset: 1px; }
+
+  .btn{
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn:hover{ background: #2b3340; }
+  .btn-primary{
+    background: var(--track);
+    border-color: var(--track);
+    color: var(--chalk);
+    font-weight: 700;
+  }
+  .btn-primary:hover{ background: #cc531f; }
+  .btn-yellow{
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: #2a1e05;
+  }
+  .btn-yellow:hover{ filter: brightness(1.05); }
+  .btn-ghost{ background: transparent; }
+  .btn:disabled{ opacity: 0.45; cursor: not-allowed; }
+
+  .quick-row{ display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .quick-row .btn{ flex: 1; min-width: 60px; }
+
+  .custom-row{ display:flex; gap:8px; }
+  .custom-row input{ flex: 1; }
+  .custom-row .btn{ flex: none; }
+
+  .board-row{
+    display:flex; align-items:center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .board-row:last-child{ border-bottom: none; }
+  .rank{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-size: 13px;
+    width: 20px;
+    flex-shrink: 0;
+  }
+  .board-main{ flex: 1; min-width: 0; }
+  .board-name-row{ display:flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+  .board-name{ font-weight: 600; }
+  .board-total{ font-family: 'JetBrains Mono', monospace; color: var(--yellow); }
+  .bar-bg{ background: var(--surface-2); border-radius: 6px; height: 7px; overflow: hidden; }
+  .bar-fill{ background: var(--track); height: 100%; border-radius: 6px; }
+
+  .bft-check{
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .bft-check input[type=checkbox]{
+    width: 20px;
+    height: 20px;
+    accent-color: var(--yellow);
+    cursor: pointer;
+  }
+  .bft-check .bft-label{
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .empty{ color: var(--text-dim); font-size: 14px; text-align:center; padding: 20px 0; }
+
+  .footer-row{
+    display:flex; justify-content: space-between; align-items:center;
+    margin-top: 20px;
+  }
+  .foot-note{ font-size: 11px; color: var(--text-dim); line-height:1.5; max-width: 380px; }
+  .reset-btn{ font-size: 12px; color: var(--danger); background: none; border: 1px solid var(--danger); }
+  .reset-btn:hover{ background: rgba(229,72,77,0.1); }
+
+  .toast{
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 50;
+  }
+  .toast.show{ opacity: 1; }
+
+  @media (max-width: 420px){
+    h1{ font-size: 27px; }
+    .total-num{ font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Team distance log</div>
+  <h1>Week 8 Zombie Lap Tracker</h1>
+
+  <div class="hero">
+    <svg class="track-svg" viewBox="0 0 400 190" id="trackSvg">
+      <rect x="20" y="15" width="360" height="130" rx="65" ry="65"
+        fill="none" stroke="#2e3542" stroke-width="26" />
+      <rect id="trackFill" x="20" y="15" width="360" height="130" rx="65" ry="65"
+        fill="none" stroke="var(--track)" stroke-width="26" stroke-linecap="round"
+        transform="rotate(-90 200 80)" />
+      <line x1="200" y1="15" x2="200" y2="41" stroke="var(--chalk)" stroke-width="3" opacity="0.6"/>
+    </svg>
+    <div class="hero-stats">
+      <div>
+        <div class="total-num" id="totalNum">0</div>
+        <div class="total-label" id="totalLabel">team laps · 0 members</div>
+      </div>
+      <div class="goal-edit">
+        goal<br>
+        <input type="number" id="goalInput" min="1" value="1000"> laps
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="lane-dot"></span>Log laps</h2>
+    <label class="field-label">Who's logging?</label>
+    <div class="name-row">
+      <select id="nameSelect"></select>
+      <button class="btn" id="newNameBtn" type="button">+ New</button>
+    </div>
+    <div class="quick-row">
+      <button class="btn" data-add="1" type="button">+1</button>
+      <button class="btn" data-add="2" type="button">+2</button>
+      <button class="btn" data-add="5" type="button">+5</button>
+      <button class="btn" data-add="10" type="button">+10</button>
+    </div>
+    <div class="custom-row">
+      <input type="number" id="customAmount" placeholder="Custom amount" min="1">
+      <button class="btn btn-primary" id="customAddBtn" type="button">Add</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="lane-dot" style="background:var(--chalk)"></span>Leaderboard</h2>
+    <div id="leaderboard"><div class="empty">No laps logged yet — be the first.</div></div>
+  </div>
+
+  <div class="footer-row">
+    <div class="foot-note">Everyone on your team sees the same totals here. Data is shared across anyone using this app — there's no login, so log laps under your own name.</div>
+    <button class="btn reset-btn" id="resetBtn" type="button">Reset all</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // ---- Supabase config: fill these in from your project's API settings ----
+  const SUPABASE_URL = 'https://ofyehjduwyqqprgokbia.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_bbRmV_Uas3rof0yPMIrHrA_VNsR-DWW';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const trackFill = document.getElementById('trackFill');
+  const totalNum = document.getElementById('totalNum');
+  const totalLabel = document.getElementById('totalLabel');
+  const goalInput = document.getElementById('goalInput');
+  const nameSelect = document.getElementById('nameSelect');
+  const leaderboardEl = document.getElementById('leaderboard');
+  const toastEl = document.getElementById('toast');
+
+  let state = { roster: [], members: {}, goal: 1000 };
+
+  function todayKey(){
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  let ringLength = 0;
+  let loaded = false;
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=> toastEl.classList.remove('show'), 2200);
+  }
+
+  function computeRingLength(){
+    try{ ringLength = trackFill.getTotalLength(); }
+    catch(e){ ringLength = 900; }
+    trackFill.style.strokeDasharray = ringLength;
+    trackFill.style.strokeDashoffset = ringLength;
+  }
+
+  function renderHero(){
+    const total = Object.values(state.members).reduce((s,m)=> s + (m.total||0), 0);
+    const memberCount = state.roster.length;
+    totalNum.textContent = Math.round(total * 10) / 10;
+    totalLabel.textContent = `team laps · ${memberCount} member${memberCount===1?'':'s'}`;
+    const pct = Math.max(0, Math.min(1, state.goal > 0 ? total / state.goal : 0));
+    const offset = ringLength * (1 - pct);
+    trackFill.style.strokeDashoffset = offset;
+    goalInput.value = state.goal;
+  }
+
+  function renderNameSelect(){
+    const current = nameSelect.value;
+    nameSelect.innerHTML = '';
+    if(state.roster.length === 0){
+      const opt = document.createElement('option');
+      opt.textContent = 'No members yet — add one';
+      opt.value = '';
+      nameSelect.appendChild(opt);
+      return;
+    }
+    state.roster.forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      nameSelect.appendChild(opt);
+    });
+    if(current && state.roster.includes(current)) nameSelect.value = current;
+  }
+
+  function renderLeaderboard(){
+    const rows = state.roster
+      .map(name => ({ name, total: (state.members[name] && state.members[name].total) || 0 }))
+      .sort((a,b)=> b.total - a.total);
+    if(rows.length === 0){
+      leaderboardEl.innerHTML = '<div class="empty">No laps logged yet — be the first.</div>';
+      return;
+    }
+    const max = Math.max(...rows.map(r=>r.total), 1);
+    const today = todayKey();
+    leaderboardEl.innerHTML = rows.map((r,i)=>{
+      const member = state.members[r.name];
+      const checked = !!(member && member.classDays && member.classDays[today]);
+      return `
+      <div class="board-row">
+        <div class="rank">${i+1}</div>
+        <div class="board-main">
+          <div class="board-name-row">
+            <span class="board-name">${escapeHtml(r.name)}</span>
+            <span class="board-total">${Math.round(r.total*10)/10}</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${(r.total/max*100).toFixed(1)}%"></div></div>
+        </div>
+        <label class="bft-check">
+          <input type="checkbox" data-bft-name="${escapeHtml(r.name)}" ${checked ? 'checked' : ''}>
+          <span class="bft-label">BFT today</span>
+        </label>
+      </div>
+    `;}).join('');
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderAll(){
+    renderHero();
+    renderNameSelect();
+    renderLeaderboard();
+  }
+
+  async function loadAll(){
+    try{
+      const { data: rows, error: membersErr } = await sb.from('team_members').select('*');
+      if(membersErr) throw membersErr;
+      state.roster = (rows || []).map(r => r.name);
+      state.members = {};
+      (rows || []).forEach(r=>{
+        state.members[r.name] = {
+          total: Number(r.total) || 0,
+          log: r.log || [],
+          classDays: r.class_days || {}
+        };
+      });
+
+      const { data: settingsRow, error: settingsErr } = await sb.from('settings').select('*').eq('id', 1).maybeSingle();
+      if(settingsErr) throw settingsErr;
+      if(settingsRow) state.goal = Number(settingsRow.goal) || 1000;
+    }catch(e){
+      console.error('Load failed', e);
+      toast('Could not load team data — check your Supabase setup.');
+    }
+    loaded = true;
+    renderAll();
+  }
+
+  async function saveSettings(){
+    try{
+      const { error } = await sb.from('settings').upsert({ id: 1, goal: state.goal });
+      if(error) throw error;
+    }catch(e){ console.error(e); toast('Could not save the goal.'); }
+  }
+
+  async function addMemberIfNew(name){
+    name = name.trim();
+    if(!name) return false;
+    if(!state.roster.includes(name)){
+      state.roster.push(name);
+      state.members[name] = { total: 0, log: [], classDays: {} };
+      try{
+        const { error } = await sb.from('team_members')
+          .upsert({ name, total: 0, log: [], class_days: {} }, { onConflict: 'name', ignoreDuplicates: true });
+        if(error) throw error;
+      }catch(e){ console.error(e); toast('Could not add that member — try again.'); }
+    }
+    return true;
+  }
+
+  async function addLaps(name, amount, method){
+    if(!name || !amount || amount <= 0) return;
+    await addMemberIfNew(name);
+    let current = { total: 0, log: [], classDays: {} };
+    try{
+      const { data, error } = await sb.from('team_members').select('*').eq('name', name).maybeSingle();
+      if(error) throw error;
+      if(data) current = { total: Number(data.total) || 0, log: data.log || [], classDays: data.class_days || {} };
+    }catch(e){ current = state.members[name] || current; }
+
+    current.total = Math.round((current.total + amount) * 100) / 100;
+    current.log = current.log || [];
+    current.log.push({ ts: Date.now(), amount: Math.round(amount*100)/100, method: method || 'manual' });
+    if(current.log.length > 25) current.log = current.log.slice(-25);
+
+    try{
+      const { error } = await sb.from('team_members')
+        .update({ total: current.total, log: current.log })
+        .eq('name', name);
+      if(error) throw error;
+      state.members[name] = current;
+      renderAll();
+      toast(`+${Math.round(amount*100)/100} lap${amount===1?'':'s'} for ${name}`);
+    }catch(e){
+      console.error(e);
+      toast('Could not save that lap — try again.');
+    }
+  }
+
+  async function toggleClassDay(name, isChecked){
+    let current = { total: 0, log: [], classDays: {} };
+    try{
+      const { data, error } = await sb.from('team_members').select('*').eq('name', name).maybeSingle();
+      if(error) throw error;
+      if(data) current = { total: Number(data.total) || 0, log: data.log || [], classDays: data.class_days || {} };
+    }catch(e){ current = state.members[name] || current; }
+
+    current.classDays = current.classDays || {};
+    const key = todayKey();
+    if(isChecked){ current.classDays[key] = true; }
+    else{ delete current.classDays[key]; }
+
+    try{
+      const { error } = await sb.from('team_members')
+        .update({ class_days: current.classDays })
+        .eq('name', name);
+      if(error) throw error;
+      state.members[name] = current;
+      toast(isChecked ? `${name} completed BFT today` : `${name}'s BFT tick removed`);
+    }catch(e){
+      console.error(e);
+      toast('Could not save that — try again.');
+    }
+  }
+
+  // --- UI wiring ---
+
+  leaderboardEl.addEventListener('change', (e)=>{
+    const cb = e.target.closest('[data-bft-name]');
+    if(!cb) return;
+    toggleClassDay(cb.dataset.bftName, cb.checked);
+  });
+
+  document.getElementById('newNameBtn').addEventListener('click', async ()=>{
+    const name = prompt('Enter your name to join the team:');
+    if(name && name.trim()){
+      await addMemberIfNew(name.trim());
+      renderAll();
+      nameSelect.value = name.trim();
+      toast(`${name.trim()} joined the team`);
+    }
+  });
+
+  document.querySelectorAll('[data-add]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = nameSelect.value;
+      if(!name){ toast('Add your name first.'); return; }
+      addLaps(name, parseFloat(btn.dataset.add), 'manual');
+    });
+  });
+
+  document.getElementById('customAddBtn').addEventListener('click', ()=>{
+    const name = nameSelect.value;
+    const val = parseFloat(document.getElementById('customAmount').value);
+    if(!name){ toast('Add your name first.'); return; }
+    if(!val || val <= 0){ toast('Enter a valid number of laps.'); return; }
+    addLaps(name, val, 'manual');
+    document.getElementById('customAmount').value = '';
+  });
+
+  let goalDebounce;
+  goalInput.addEventListener('change', ()=>{
+    const v = parseFloat(goalInput.value);
+    if(v && v > 0){
+      state.goal = v;
+      renderHero();
+      clearTimeout(goalDebounce);
+      goalDebounce = setTimeout(saveSettings, 400);
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', async ()=>{
+    if(!confirm('Reset the ENTIRE team log for everyone? This cannot be undone.')) return;
+    if(!confirm('Really sure? Every member\'s total will go back to zero.')) return;
+    try{
+      const { error } = await sb.from('team_members')
+        .update({ total: 0, log: [], class_days: {} })
+        .neq('name', '');
+      if(error) throw error;
+      Object.keys(state.members).forEach(n => state.members[n] = { total: 0, log: [], classDays: {} });
+      renderAll();
+      toast('Team log reset.');
+    }catch(e){
+      console.error(e);
+      toast('Reset failed — try again.');
+    }
+  });
+
+  // --- init ---
+  computeRingLength();
+  window.addEventListener('resize', ()=>{ computeRingLength(); renderHero(); });
+  loadAll();
+})();
+</script>
+</body>
+</html>
