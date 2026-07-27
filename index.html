@@ -6,26 +6,27 @@
 <title>Week 8 Zombie Lap Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Creepster&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
-    --bg: #12151b;
-    --surface: #1b2028;
-    --surface-2: #242b35;
-    --track: #b8471f;
-    --track-dim: #7a3016;
-    --chalk: #f4f2ea;
-    --yellow: #ffc93c;
-    --text: #eef0f2;
-    --text-dim: #8791a1;
+    --bg: #0a0f0c;
+    --surface: #131a16;
+    --surface-2: #1c261f;
+    --track: #2fae5c;
+    --track-dim: #1c6d39;
+    --blood: #6e0f14;
+    --chalk: #f2f6f4;
+    --blue: #4d8dff;
+    --text: #eef1ef;
+    --text-dim: #8a9a91;
     --danger: #e5484d;
-    --border: #2e3542;
+    --border: #263129;
   }
   *{ box-sizing: border-box; }
   body{
     margin:0;
-    background: radial-gradient(1200px 600px at 50% -10%, #1a212c 0%, var(--bg) 55%);
+    background: radial-gradient(1200px 600px at 50% -10%, #131f19 0%, var(--bg) 55%);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     min-height: 100vh;
@@ -38,7 +39,7 @@
     font-size: 12px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--track);
+    color: var(--blue);
     font-weight: 600;
   }
   h1{
@@ -46,18 +47,51 @@
     font-weight: 800;
     font-size: 34px;
     letter-spacing: 0.01em;
-    margin: 2px 0 24px;
+    margin: 2px 0 10px;
     text-transform: uppercase;
     line-height: 0.95;
+    color: var(--chalk);
+  }
+  .zombie-word{
+    font-family: 'Creepster', cursive;
+    text-transform: none;
+    color: var(--chalk);
+    font-size: 1.2em;
+    letter-spacing: 0.02em;
+    text-shadow:
+      0 3px 0 var(--track-dim),
+      0 6px 3px rgba(47,174,92,0.55),
+      0 10px 10px rgba(47,174,92,0.25);
+  }
+  .drip-row{ display:flex; gap: 10px; margin: 0 0 22px; }
+  .drip{
+    width: 6px; border-radius: 0 0 4px 4px;
+    background: var(--track);
+    opacity: 0.75;
   }
 
   .hero{
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 30px;
     position: relative;
     overflow: hidden;
+    clip-path: polygon(
+      0 0, 100% 0, 100% 88%,
+      93% 100%, 86% 88%, 79% 100%, 72% 88%, 65% 100%, 58% 88%,
+      51% 100%, 44% 88%, 37% 100%, 30% 88%, 23% 100%, 16% 88%,
+      9% 100%, 2% 88%, 0 96%
+    );
+  }
+  .hand-deco{
+    position: absolute;
+    bottom: -6px;
+    right: 10px;
+    width: 64px;
+    height: auto;
+    opacity: 0.5;
+    pointer-events: none;
   }
   .track-svg{ width: 100%; height: auto; display:block; }
   .hero-stats{
@@ -70,7 +104,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
     font-size: 44px;
-    color: var(--chalk);
+    color: var(--blue);
     line-height: 1;
   }
   .total-label{
@@ -91,7 +125,7 @@
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 6px;
-    color: var(--yellow);
+    color: var(--blue);
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     padding: 3px 6px;
@@ -166,13 +200,7 @@
     color: var(--chalk);
     font-weight: 700;
   }
-  .btn-primary:hover{ background: #cc531f; }
-  .btn-yellow{
-    background: var(--yellow);
-    border-color: var(--yellow);
-    color: #2a1e05;
-  }
-  .btn-yellow:hover{ filter: brightness(1.05); }
+  .btn-primary:hover{ background: #268f4c; }
   .btn-ghost{ background: transparent; }
   .btn:disabled{ opacity: 0.45; cursor: not-allowed; }
 
@@ -199,7 +227,7 @@
   .board-main{ flex: 1; min-width: 0; }
   .board-name-row{ display:flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
   .board-name{ font-weight: 600; }
-  .board-total{ font-family: 'JetBrains Mono', monospace; color: var(--yellow); }
+  .board-total{ font-family: 'JetBrains Mono', monospace; color: var(--blue); }
   .bar-bg{ background: var(--surface-2); border-radius: 6px; height: 7px; overflow: hidden; }
   .bar-fill{ background: var(--track); height: 100%; border-radius: 6px; }
 
@@ -213,7 +241,7 @@
   .bft-check input[type=checkbox]{
     width: 20px;
     height: 20px;
-    accent-color: var(--yellow);
+    accent-color: var(--blue);
     cursor: pointer;
   }
   .bft-check .bft-label{
@@ -231,7 +259,7 @@
     margin-top: 20px;
   }
   .foot-note{ font-size: 11px; color: var(--text-dim); line-height:1.5; max-width: 380px; }
-  .reset-btn{ font-size: 12px; color: var(--danger); background: none; border: 1px solid var(--danger); }
+  .reset-btn{ font-size: 12px; color: var(--chalk); background: none; border: 1px solid var(--danger); }
   .reset-btn:hover{ background: rgba(229,72,77,0.1); }
 
   .toast{
@@ -252,10 +280,21 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">Team distance log</div>
-  <h1>Week 8 Zombie Lap Tracker</h1>
+  <div class="eyebrow">Outbreak progress · Week 8</div>
+  <h1>Team <span class="zombie-word">Zombie</span> Lap Tracker</h1>
+  <div class="drip-row">
+    <div class="drip" style="height:14px"></div>
+    <div class="drip" style="height:22px"></div>
+    <div class="drip" style="height:9px"></div>
+    <div class="drip" style="height:17px"></div>
+    <div class="drip" style="height:6px"></div>
+  </div>
 
   <div class="hero">
+    <svg class="hand-deco" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+      <path fill="var(--track-dim)" opacity="0.9" d="M50 90 C20 90 8 70 8 55 L8 40 C8 34 13 30 18 30 C23 30 27 34 27 40 L27 20 C27 14 32 10 37 10 C42 10 46 14 46 20 L46 15 C46 9 51 5 56 5 C61 5 65 9 65 15 L65 22 C65 16 69 12 74 12 C79 12 83 16 83 22 L83 55 C83 74 74 90 50 90 Z"/>
+      <path fill="none" stroke="var(--bg)" stroke-width="2" opacity="0.5" d="M20 45 L30 38 M40 30 L48 24 M58 20 L66 16"/>
+    </svg>
     <svg class="track-svg" viewBox="0 0 400 190" id="trackSvg">
       <rect x="20" y="15" width="360" height="130" rx="65" ry="65"
         fill="none" stroke="#2e3542" stroke-width="26" />
@@ -280,7 +319,7 @@
     <label class="field-label">Who's logging?</label>
     <div class="name-row">
       <select id="nameSelect"></select>
-      <button class="btn" id="newNameBtn" type="button">+ New</button>
+      <button class="btn" id="newNameBtn" type="button">+ New survivor</button>
     </div>
     <div class="quick-row">
       <button class="btn" data-add="1" type="button">+1</button>
@@ -301,7 +340,7 @@
 
   <div class="footer-row">
     <div class="foot-note">Everyone on your team sees the same totals here. Data is shared across anyone using this app — there's no login, so log laps under your own name.</div>
-    <button class="btn reset-btn" id="resetBtn" type="button">Reset all</button>
+    <button class="btn reset-btn" id="resetBtn" type="button">Reset outbreak</button>
   </div>
 </div>
 
@@ -329,6 +368,7 @@
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
   let ringLength = 0;
+  let startShift = 0;
   let loaded = false;
 
   function toast(msg){
@@ -343,6 +383,15 @@
     catch(e){ ringLength = 900; }
     trackFill.style.strokeDasharray = ringLength;
     trackFill.style.strokeDashoffset = ringLength;
+
+    // An SVG rounded rect's path always starts partway along the top edge,
+    // rx units in from the left corner. The white finish-line mark sits at
+    // the horizontal center of the rect, which is further along that same
+    // straight top edge — so the distance between them is just half the
+    // top edge's flat (non-curved) length.
+    const rectW = parseFloat(trackFill.getAttribute('width')) || 0;
+    const rectRx = parseFloat(trackFill.getAttribute('rx')) || 0;
+    startShift = (rectW - 2 * rectRx) / 2;
   }
 
   function renderHero(){
@@ -351,7 +400,7 @@
     totalNum.textContent = Math.round(total * 10) / 10;
     totalLabel.textContent = `team laps · ${memberCount} member${memberCount===1?'':'s'}`;
     const pct = Math.max(0, Math.min(1, state.goal > 0 ? total / state.goal : 0));
-    const offset = ringLength * (1 - pct);
+    const offset = ringLength * (1 - pct) - startShift;
     trackFill.style.strokeDashoffset = offset;
     goalInput.value = state.goal;
   }
@@ -399,7 +448,7 @@
         </div>
         <label class="bft-check">
           <input type="checkbox" data-bft-name="${escapeHtml(r.name)}" ${checked ? 'checked' : ''}>
-          <span class="bft-label">BFT today</span>
+          <span class="bft-label">Survived BFT</span>
         </label>
       </div>
     `;}).join('');
