@@ -227,7 +227,14 @@
   .board-main{ flex: 1; min-width: 0; }
   .board-name-row{ display:flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
   .board-name{ font-weight: 600; }
+  .board-total-wrap{ display:flex; align-items:center; gap: 6px; }
   .board-total{ font-family: 'JetBrains Mono', monospace; color: var(--blue); }
+  .edit-btn{
+    background: none; border: none; cursor: pointer;
+    color: var(--blue); opacity: 0.6;
+    font-size: 13px; padding: 0 2px; line-height: 1;
+  }
+  .edit-btn:hover{ opacity: 1; }
   .bar-bg{ background: var(--surface-2); border-radius: 6px; height: 7px; overflow: hidden; }
   .bar-fill{ background: var(--track); height: 100%; border-radius: 6px; }
 
@@ -381,8 +388,6 @@
   function computeRingLength(){
     try{ ringLength = trackFill.getTotalLength(); }
     catch(e){ ringLength = 900; }
-    trackFill.style.strokeDasharray = ringLength;
-    trackFill.style.strokeDashoffset = ringLength;
 
     // An SVG rounded rect's path always starts partway along the top edge,
     // rx units in from the left corner. The white finish-line mark sits at
@@ -392,6 +397,10 @@
     const rectW = parseFloat(trackFill.getAttribute('width')) || 0;
     const rectRx = parseFloat(trackFill.getAttribute('rx')) || 0;
     startShift = (rectW - 2 * rectRx) / 2;
+
+    // Fixed offset: rotates the whole dash pattern so its zero-point lands
+    // exactly at the white line, regardless of how much is filled.
+    trackFill.style.strokeDashoffset = ringLength - startShift;
   }
 
   function renderHero(){
@@ -400,8 +409,8 @@
     totalNum.textContent = Math.round(total * 10) / 10;
     totalLabel.textContent = `team laps · ${memberCount} member${memberCount===1?'':'s'}`;
     const pct = Math.max(0, Math.min(1, state.goal > 0 ? total / state.goal : 0));
-    const offset = ringLength * (1 - pct) - startShift;
-    trackFill.style.strokeDashoffset = offset;
+    const filled = ringLength * pct;
+    trackFill.style.strokeDasharray = `${filled} ${Math.max(0, ringLength - filled)}`;
     goalInput.value = state.goal;
   }
 
@@ -442,7 +451,10 @@
         <div class="board-main">
           <div class="board-name-row">
             <span class="board-name">${escapeHtml(r.name)}</span>
-            <span class="board-total">${Math.round(r.total*10)/10}</span>
+            <span class="board-total-wrap">
+              <span class="board-total">${Math.round(r.total*10)/10}</span>
+              <button class="edit-btn" data-edit-name="${escapeHtml(r.name)}" title="Edit score" type="button">✎</button>
+            </span>
           </div>
           <div class="bar-bg"><div class="bar-fill" style="width:${(r.total/max*100).toFixed(1)}%"></div></div>
         </div>
@@ -566,7 +578,33 @@
     }
   }
 
+  async function setTotal(name, newTotal){
+    try{
+      const { error } = await sb.from('team_members').update({ total: newTotal }).eq('name', name);
+      if(error) throw error;
+      if(!state.members[name]) state.members[name] = { total: 0, log: [], classDays: {} };
+      state.members[name].total = newTotal;
+      renderAll();
+      toast(`${name}'s total set to ${newTotal}`);
+    }catch(e){
+      console.error(e);
+      toast('Could not update that score — try again.');
+    }
+  }
+
   // --- UI wiring ---
+
+  leaderboardEl.addEventListener('click', (e)=>{
+    const editBtn = e.target.closest('[data-edit-name]');
+    if(!editBtn) return;
+    const name = editBtn.dataset.editName;
+    const current = (state.members[name] && state.members[name].total) || 0;
+    const input = prompt(`Set ${name}'s total laps to:`, current);
+    if(input === null) return;
+    const val = parseFloat(input);
+    if(isNaN(val) || val < 0){ toast('Enter a valid number.'); return; }
+    setTotal(name, Math.round(val * 100) / 100);
+  });
 
   leaderboardEl.addEventListener('change', (e)=>{
     const cb = e.target.closest('[data-bft-name]');
