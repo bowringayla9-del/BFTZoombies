@@ -235,6 +235,24 @@
     font-size: 13px; padding: 0 2px; line-height: 1;
   }
   .edit-btn:hover{ opacity: 1; }
+  .edit-row{ display:flex; align-items:center; gap: 6px; }
+  .edit-input{
+    width: 64px;
+    background: var(--surface-2);
+    border: 1px solid var(--blue);
+    color: var(--chalk);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .save-btn, .cancel-btn{
+    background: none; border: none; cursor: pointer;
+    font-size: 15px; padding: 0 2px; line-height: 1;
+  }
+  .save-btn{ color: var(--blue); }
+  .cancel-btn{ color: var(--chalk); opacity: 0.6; }
+  .cancel-btn:hover{ opacity: 1; }
   .bar-bg{ background: var(--surface-2); border-radius: 6px; height: 7px; overflow: hidden; }
   .bar-fill{ background: var(--track); height: 100%; border-radius: 6px; }
 
@@ -377,6 +395,7 @@
   let ringLength = 0;
   let startShift = 0;
   let loaded = false;
+  let editingName = null;
 
   function toast(msg){
     toastEl.textContent = msg;
@@ -451,10 +470,18 @@
         <div class="board-main">
           <div class="board-name-row">
             <span class="board-name">${escapeHtml(r.name)}</span>
-            <span class="board-total-wrap">
-              <span class="board-total">${Math.round(r.total*10)/10}</span>
-              <button class="edit-btn" data-edit-name="${escapeHtml(r.name)}" title="Edit score" type="button">✎</button>
-            </span>
+            ${editingName === r.name ? `
+              <span class="edit-row">
+                <input type="number" class="edit-input" id="editInput" value="${r.total}" step="0.1" min="0">
+                <button class="save-btn" data-save-name="${escapeHtml(r.name)}" title="Save" type="button">✓</button>
+                <button class="cancel-btn" data-cancel-edit title="Cancel" type="button">✕</button>
+              </span>
+            ` : `
+              <span class="board-total-wrap">
+                <span class="board-total">${Math.round(r.total*10)/10}</span>
+                <button class="edit-btn" data-edit-name="${escapeHtml(r.name)}" title="Edit score" type="button">✎</button>
+              </span>
+            `}
           </div>
           <div class="bar-bg"><div class="bar-fill" style="width:${(r.total/max*100).toFixed(1)}%"></div></div>
         </div>
@@ -596,14 +623,40 @@
 
   leaderboardEl.addEventListener('click', (e)=>{
     const editBtn = e.target.closest('[data-edit-name]');
-    if(!editBtn) return;
-    const name = editBtn.dataset.editName;
-    const current = (state.members[name] && state.members[name].total) || 0;
-    const input = prompt(`Set ${name}'s total laps to:`, current);
-    if(input === null) return;
-    const val = parseFloat(input);
-    if(isNaN(val) || val < 0){ toast('Enter a valid number.'); return; }
-    setTotal(name, Math.round(val * 100) / 100);
+    if(editBtn){
+      editingName = editBtn.dataset.editName;
+      renderLeaderboard();
+      const input = document.getElementById('editInput');
+      if(input){ input.focus(); input.select(); }
+      return;
+    }
+    const cancelBtn = e.target.closest('[data-cancel-edit]');
+    if(cancelBtn){
+      editingName = null;
+      renderLeaderboard();
+      return;
+    }
+    const saveBtn = e.target.closest('[data-save-name]');
+    if(saveBtn){
+      const name = saveBtn.dataset.saveName;
+      const input = document.getElementById('editInput');
+      const val = input ? parseFloat(input.value) : NaN;
+      if(isNaN(val) || val < 0){ toast('Enter a valid number.'); return; }
+      editingName = null;
+      setTotal(name, Math.round(val * 100) / 100);
+      return;
+    }
+  });
+
+  leaderboardEl.addEventListener('keydown', (e)=>{
+    if(e.target.id !== 'editInput') return;
+    if(e.key === 'Enter'){
+      const saveBtn = leaderboardEl.querySelector('[data-save-name]');
+      if(saveBtn) saveBtn.click();
+    } else if(e.key === 'Escape'){
+      editingName = null;
+      renderLeaderboard();
+    }
   });
 
   leaderboardEl.addEventListener('change', (e)=>{
